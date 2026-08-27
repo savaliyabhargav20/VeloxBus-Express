@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "User profile with contact info, role, wallet balance, and saved traveler passengers.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string", "description": "Full name of the user" },
+        "email": { "type": "string", "description": "User email address" },
+        "phone": { "type": "string", "description": "User contact mobile number" },
+        "photoURL": { "type": "string", "description": "User avatar photo URL" },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "Access level" },
+        "walletBalance": { "type": "number", "description": "Velox wallet credits" },
+        "savedPassengers": {
+          "type": "array",
+          "description": "List of saved frequent travelers",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "age": { "type": "number" },
+              "gender": { "type": "string", "enum": ["male", "female", "other"] },
+              "seatNumber": { "type": "string" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "description": "ISO timestamp" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp" }
+      },
+      "required": ["email", "name"]
+    },
+    "bookings": {
+      "title": "Booking",
+      "description": "Bus journey reservation details, seat selections, and PNR ticket data.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique booking identifier" },
+        "pnr": { "type": "string", "description": "Passenger Name Record" },
+        "busId": { "type": "string", "description": "Booked Bus ID" },
+        "userId": { "type": "string", "description": "User Auth UID or demo identifier" },
+        "source": { "type": "string", "description": "Origin city" },
+        "destination": { "type": "string", "description": "Destination city" },
+        "journeyDate": { "type": "string", "description": "Travel date YYYY-MM-DD" },
+        "seats": { "type": "array", "items": { "type": "string" } },
+        "passengers": { "type": "array" },
+        "boardingPoint": { "type": "object" },
+        "droppingPoint": { "type": "object" },
+        "contactEmail": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "totalFare": { "type": "number" },
+        "discountAmount": { "type": "number" },
+        "finalAmount": { "type": "number" },
+        "bookingDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["confirmed", "cancelled", "completed"] },
+        "busDetails": { "type": "object" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["pnr", "source", "destination", "journeyDate", "seats", "finalAmount", "status"]
+    }
+  }
+}

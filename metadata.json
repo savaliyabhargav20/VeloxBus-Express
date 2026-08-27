@@ -1,0 +1,6 @@
+{
+  "name": "VeloxBus - Modern Bus Booking Platform",
+  "description": "An end-to-end bus reservation platform featuring route search, interactive seat maps, instant booking with QR tickets, live GPS tracking, admin control center, and user trip management.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
