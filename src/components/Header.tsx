@@ -41,9 +41,6 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent">
                 VeloxBus
               </span>
-              <span className="hidden sm:inline-block ml-1.5 px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800">
-                Express
-              </span>
             </div>
           </div>
 

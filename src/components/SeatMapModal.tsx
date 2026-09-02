@@ -26,12 +26,14 @@ export const SeatMapModal: React.FC<SeatMapModalProps> = ({
     formatPrice
   } = useBooking();
 
-  const [activeDeck, setActiveDeck] = useState<'lower' | 'upper'>('lower');
+  const isSleeper = bus?.busType?.toLowerCase().includes('sleeper') ?? false;
+  const [deckView, setDeckView] = useState<'both' | 'lower' | 'upper'>('both');
 
   if (!isOpen || !bus) return null;
 
-  const isSleeper = bus.busType.toLowerCase().includes('sleeper');
-  const seatsOnDeck = bus.seatLayout.filter(s => s.deck === activeDeck);
+  const lowerSeats = bus.seatLayout.filter(s => s.deck === 'lower' || !s.deck);
+  const upperSeats = bus.seatLayout.filter(s => s.deck === 'upper');
+  const hasUpperDeck = upperSeats.length > 0 || isSleeper;
 
   const unitPrice = bus.discountPrice || bus.price;
   const totalAmount = selectedSeats.length * unitPrice;
@@ -50,9 +52,132 @@ export const SeatMapModal: React.FC<SeatMapModalProps> = ({
     onProceedToCheckout();
   };
 
+  // Helper to render a deck cabin panel
+  const renderDeckCabin = (deckName: string, seats: Seat[], isLower: boolean) => {
+    // Separate into left column (single berth/seat) and right column (double berth/seater)
+    const leftColumnSeats = seats.filter((_, idx) => idx % 2 === 0);
+    const rightColumnSeats = seats.filter((_, idx) => idx % 2 !== 0);
+
+    return (
+      <div className="flex-1 bg-slate-100 dark:bg-slate-800/90 p-4 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 relative flex flex-col justify-between">
+        
+        {/* Deck Header & Driver Cabin Indicator */}
+        <div>
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-700">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+              <span className={`w-2.5 h-2.5 rounded-full ${isLower ? 'bg-emerald-500' : 'bg-indigo-500'}`}></span>
+              {deckName}
+            </span>
+            {isLower ? (
+              <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-700 px-2.5 py-0.5 rounded-full text-[9px] font-bold text-slate-600 dark:text-slate-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Driver Cabin
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-700 px-2.5 py-0.5 rounded-full text-[9px] font-bold text-slate-500 dark:text-slate-400">
+                Upper Tier
+              </div>
+            )}
+          </div>
+
+          {/* Seats / Berths Layout Grid with Gangway */}
+          <div className="grid grid-cols-12 gap-2 items-start">
+            
+            {/* Left Column Berths */}
+            <div className="col-span-5 space-y-2">
+              <p className="text-[9px] font-extrabold uppercase text-slate-400 dark:text-slate-500 text-center mb-1">
+                Single Berth
+              </p>
+              {leftColumnSeats.map(seat => {
+                const isSelected = selectedSeats.includes(seat.id);
+                const isBooked = seat.status === 'booked';
+                const isWomen = seat.status === 'women_only';
+
+                return (
+                  <button
+                    key={seat.id}
+                    disabled={isBooked}
+                    onClick={() => toggleSeatSelection(seat.id)}
+                    className={`w-full relative transition-all duration-200 ease-out transform rounded-xl p-1.5 font-bold text-xs flex flex-col items-center justify-center cursor-pointer border ${
+                      isSleeper ? 'h-13' : 'h-10'
+                    } ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-[1.03] ring-2 ring-emerald-400/50'
+                        : isBooked
+                        ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-not-allowed opacity-60'
+                        : isWomen
+                        ? 'bg-pink-50 dark:bg-pink-950/40 text-pink-700 dark:text-pink-300 border-pink-300 dark:border-pink-800 hover:bg-pink-100 hover:scale-[1.02] active:scale-95'
+                        : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 hover:scale-[1.02] active:scale-95'
+                    }`}
+                  >
+                    <span className="text-[11px] font-black">{seat.number}</span>
+                    <span className="text-[8.5px] font-semibold opacity-80">{formatPrice(seat.price)}</span>
+                    {isSelected && (
+                      <Check className="w-3 h-3 absolute top-1 right-1 transition-all duration-200 animate-in zoom-in-50 fade-in text-white" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Central Gangway / Aisle Walkway */}
+            <div className="col-span-2 flex flex-col items-center justify-center h-full min-h-[220px] border-x border-dashed border-slate-300 dark:border-slate-700 text-[8px] font-bold text-slate-400 dark:text-slate-600 tracking-widest uppercase">
+              <span className="[writing-mode:vertical-lr] rotate-180 select-none py-4">
+                Aisle Gangway
+              </span>
+            </div>
+
+            {/* Right Column Berths */}
+            <div className="col-span-5 space-y-2">
+              <p className="text-[9px] font-extrabold uppercase text-slate-400 dark:text-slate-500 text-center mb-1">
+                Double Berth
+              </p>
+              {rightColumnSeats.map(seat => {
+                const isSelected = selectedSeats.includes(seat.id);
+                const isBooked = seat.status === 'booked';
+                const isWomen = seat.status === 'women_only';
+
+                return (
+                  <button
+                    key={seat.id}
+                    disabled={isBooked}
+                    onClick={() => toggleSeatSelection(seat.id)}
+                    className={`w-full relative transition-all duration-200 ease-out transform rounded-xl p-1.5 font-bold text-xs flex flex-col items-center justify-center cursor-pointer border ${
+                      isSleeper ? 'h-13' : 'h-10'
+                    } ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-[1.03] ring-2 ring-emerald-400/50'
+                        : isBooked
+                        ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-not-allowed opacity-60'
+                        : isWomen
+                        ? 'bg-pink-50 dark:bg-pink-950/40 text-pink-700 dark:text-pink-300 border-pink-300 dark:border-pink-800 hover:bg-pink-100 hover:scale-[1.02] active:scale-95'
+                        : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 hover:scale-[1.02] active:scale-95'
+                    }`}
+                  >
+                    <span className="text-[11px] font-black">{seat.number}</span>
+                    <span className="text-[8.5px] font-semibold opacity-80">{formatPrice(seat.price)}</span>
+                    {isSelected && (
+                      <Check className="w-3 h-3 absolute top-1 right-1 transition-all duration-200 animate-in zoom-in-50 fade-in text-white" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+          </div>
+        </div>
+
+        {/* Rear Exit Indicator */}
+        <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700 text-center text-[9px] text-slate-400 uppercase tracking-widest font-bold">
+          Rear Exit Door
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-5xl max-h-[94vh] flex flex-col overflow-hidden">
         
         {/* Header */}
         <div className="p-5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between border-b border-slate-700">
@@ -78,7 +203,7 @@ export const SeatMapModal: React.FC<SeatMapModalProps> = ({
 
         <div className="p-6 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* Left Column: Interactive Seat Grid */}
+          {/* Left Column: Interactive Seat & Berth Cabin Decks */}
           <div className="lg:col-span-7 space-y-4">
             
             {/* Legend Bar */}
@@ -101,120 +226,51 @@ export const SeatMapModal: React.FC<SeatMapModalProps> = ({
               </div>
             </div>
 
-            {/* Deck Switcher for Sleeper */}
-            {isSleeper && (
+            {/* Deck Switcher / Alignment View Tabs for Sleeper */}
+            {hasUpperDeck && (
               <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
                 <button
-                  onClick={() => setActiveDeck('lower')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
-                    activeDeck === 'lower'
+                  onClick={() => setDeckView('both')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                    deckView === 'both'
                       ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
                       : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
-                  Lower Deck (Berths L1 - L12)
+                  Both Decks (Side-by-Side Aligned)
                 </button>
                 <button
-                  onClick={() => setActiveDeck('upper')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
-                    activeDeck === 'upper'
+                  onClick={() => setDeckView('lower')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                    deckView === 'lower'
                       ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
                       : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
-                  Upper Deck (Berths U1 - U12)
+                  Lower Deck Only
+                </button>
+                <button
+                  onClick={() => setDeckView('upper')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                    deckView === 'upper'
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Upper Deck Only
                 </button>
               </div>
             )}
 
-            {/* Bus Cabin Visual Layout */}
-            <div className="bg-slate-100 dark:bg-slate-800/80 p-5 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 relative">
-              
-              {/* Driver Steering Icon */}
-              <div className="flex justify-end mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">
-                <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded-full text-[10px] font-bold text-slate-600 dark:text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Front / Driver Cabin
-                </div>
+            {/* Aligned Bus Cabin Panels */}
+            {hasUpperDeck ? (
+              <div className={`grid gap-4 ${deckView === 'both' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+                {(deckView === 'both' || deckView === 'lower') && renderDeckCabin('Lower Deck', lowerSeats, true)}
+                {(deckView === 'both' || deckView === 'upper') && renderDeckCabin('Upper Deck', upperSeats, false)}
               </div>
-
-              {/* Seats Matrix */}
-              <div className="grid grid-cols-2 gap-4 items-start">
-                
-                {/* Left Row Seats */}
-                <div className="grid grid-cols-2 gap-2">
-                  {seatsOnDeck.filter((_, idx) => idx % 2 === 0).map(seat => {
-                    const isSelected = selectedSeats.includes(seat.id);
-                    const isBooked = seat.status === 'booked';
-                    const isWomen = seat.status === 'women_only';
-
-                    return (
-                      <button
-                        key={seat.id}
-                        disabled={isBooked}
-                        onClick={() => toggleSeatSelection(seat.id)}
-                        className={`relative transition-all duration-200 ease-out transform rounded-xl p-2 font-bold text-xs flex flex-col items-center justify-center cursor-pointer border ${
-                          isSleeper ? 'h-14' : 'h-11'
-                        } ${
-                          isSelected
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105 ring-2 ring-emerald-400/50'
-                            : isBooked
-                            ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-not-allowed'
-                            : isWomen
-                            ? 'bg-pink-50 dark:bg-pink-950/40 text-pink-700 dark:text-pink-300 border-pink-300 dark:border-pink-800 hover:bg-pink-100 hover:scale-[1.03] active:scale-95'
-                            : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 hover:scale-[1.03] active:scale-95'
-                        }`}
-                      >
-                        <span className="text-[11px]">{seat.number}</span>
-                        <span className="text-[9px] font-semibold opacity-80">{formatPrice(seat.price)}</span>
-                        {isSelected && (
-                          <Check className="w-3 h-3 absolute top-1 right-1 transition-all duration-200 animate-in zoom-in-50 fade-in text-white" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Right Row Seats */}
-                <div className="grid grid-cols-2 gap-2">
-                  {seatsOnDeck.filter((_, idx) => idx % 2 !== 0).map(seat => {
-                    const isSelected = selectedSeats.includes(seat.id);
-                    const isBooked = seat.status === 'booked';
-                    const isWomen = seat.status === 'women_only';
-
-                    return (
-                      <button
-                        key={seat.id}
-                        disabled={isBooked}
-                        onClick={() => toggleSeatSelection(seat.id)}
-                        className={`relative transition-all duration-200 ease-out transform rounded-xl p-2 font-bold text-xs flex flex-col items-center justify-center cursor-pointer border ${
-                          isSleeper ? 'h-14' : 'h-11'
-                        } ${
-                          isSelected
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105 ring-2 ring-emerald-400/50'
-                            : isBooked
-                            ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-not-allowed'
-                            : isWomen
-                            ? 'bg-pink-50 dark:bg-pink-950/40 text-pink-700 dark:text-pink-300 border-pink-300 dark:border-pink-800 hover:bg-pink-100 hover:scale-[1.03] active:scale-95'
-                            : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 hover:scale-[1.03] active:scale-95'
-                        }`}
-                      >
-                        <span className="text-[11px]">{seat.number}</span>
-                        <span className="text-[9px] font-semibold opacity-80">{formatPrice(seat.price)}</span>
-                        {isSelected && (
-                          <Check className="w-3 h-3 absolute top-1 right-1 transition-all duration-200 animate-in zoom-in-50 fade-in text-white" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-              </div>
-
-              <div className="mt-4 pt-2 border-t border-slate-200 dark:border-slate-700 text-center text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                Rear Exit Door
-              </div>
-            </div>
+            ) : (
+              renderDeckCabin('Passenger Cabin', lowerSeats, true)
+            )}
 
           </div>
 
